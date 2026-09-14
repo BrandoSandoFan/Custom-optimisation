@@ -1,0 +1,46 @@
+name: build
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  core:
+    name: core (tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Test
+        working-directory: core
+        run: ./gradlew test --no-daemon
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: core-test-results
+          path: core/build/reports/tests/test
+
+  mod:
+    name: mod (jar)
+    runs-on: ubuntu-latest
+    # The Fabric toolchain needs maven.fabricmc.net, so this is the job that proves the mod
+    # itself compiles against real Minecraft and Fabric API rather than against the core alone.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Build
+        working-directory: fabric
+        run: ./gradlew build --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spectune-jar
+          path: fabric/build/libs/*.jar
+          if-no-files-found: error

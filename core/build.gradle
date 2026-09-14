@@ -1,0 +1,42 @@
+// Plain Java, no Minecraft on the classpath. Everything that decides *what* to tune lives here so
+// it can be compiled and tested without a Fabric toolchain, and so a NeoForge port only has to
+// reimplement the thin adapter layer in ../fabric.
+plugins {
+    id 'java-library'
+}
+
+group = 'dev.brandosandofan.spectune'
+version = '1.0.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.11.3')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('jar') {
+    manifest {
+        attributes 'Main-Class': 'dev.brandosandofan.spectune.core.SpecTuneCli'
+    }
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    testLogging {
+        events 'passed', 'failed', 'skipped'
+    }
+}

@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "spectune",
+  "version": "${version}",
+  "name": "SpecTune",
+  "description": "Sizes Minecraft's worker pools, thread priorities and video settings to the machine it is actually running on, and reports what the JVM is doing wrong. Built for a hybrid-core laptop with a discrete GPU.",
+  "authors": [
+    "BrandoSandoFan"
+  ],
+  "contact": {
+    "repo": "https://github.com/BrandoSandoFan/Custom-optimisation"
+  },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "preLaunch": [
+      "dev.brandosandofan.spectune.fabric.SpecTunePreLaunch"
+    ],
+    "main": [
+      "dev.brandosandofan.spectune.fabric.SpecTuneMod"
+    ],
+    "client": [
+      "dev.brandosandofan.spectune.fabric.SpecTuneClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "~${minecraft_version}",
+    "java": ">=21"
+  },
+  "suggests": {
+    "sodium": "*",
+    "lithium": "*"
+  }
+}
