@@ -83,6 +83,65 @@ class SpecTuneConfigTest {
     }
 
     @Test
+    void cachesTheDetectedTopologySoStartUpDoesNotReprobe() {
+        int liveCores = Runtime.getRuntime().availableProcessors();
+        CpuTopology detected = new CpuTopology("Intel Core Ultra 9 275HX", liveCores, liveCores,
+                Math.max(1, liveCores / 3), liveCores - Math.max(1, liveCores / 3), false,
+                CpuTopology.Source.WMI);
+
+        SpecTuneConfig config = SpecTuneConfig.defaults();
+        assertTrue(config.cachedTopology().isEmpty(), "nothing cached before the first probe");
+        config.cacheTopology(detected);
+        assertEquals(detected, config.cachedTopology().orElseThrow());
+    }
+
+    @Test
+    void discardsACacheFromADifferentMachine() {
+        SpecTuneConfig config = SpecTuneConfig.defaults();
+        config.cacheTopology(new CpuTopology("Some other CPU",
+                Runtime.getRuntime().availableProcessors() + 8,
+                Runtime.getRuntime().availableProcessors() + 8, 8, 16, false, CpuTopology.Source.WMI));
+        assertTrue(config.cachedTopology().isEmpty(), "a core-count mismatch must force a re-probe");
+    }
+
+    @Test
+    void discardsAHandEditedCache() {
+        SpecTuneConfig config = SpecTuneConfig.defaults();
+        config.set("cpu.cache.brand", "Broken");
+        config.set("cpu.cache.logical", Integer.toString(Runtime.getRuntime().availableProcessors()));
+        config.set("cpu.cache.physical", "not a number");
+        config.set("cpu.cache.performance", "4");
+        config.set("cpu.cache.efficiency", "0");
+        assertTrue(config.cachedTopology().isEmpty());
+    }
+
+    @Test
+    void resolvingSurvivesARoundTripThroughTheFile(@TempDir Path dir) throws IOException {
+        Path file = dir.resolve("spectune.properties");
+        SpecTuneConfig first = SpecTuneConfig.load(file);
+        CpuTopology resolved = first.resolveTopology();
+        first.save(file);
+
+        SpecTuneConfig second = SpecTuneConfig.load(file);
+        assertEquals(resolved, second.cachedTopology().orElseThrow(),
+                "the second launch must reuse the first launch's detection");
+    }
+
+    @Test
+    void anOverrideStillWinsOverTheCache(@TempDir Path dir) throws IOException {
+        Path file = dir.resolve("spectune.properties");
+        SpecTuneConfig config = SpecTuneConfig.load(file);
+        config.resolveTopology();
+        config.set("cpu.performanceCores", "8");
+        config.set("cpu.efficiencyCores", "16");
+
+        CpuTopology resolved = config.resolveTopology();
+        assertEquals(8, resolved.performanceCores());
+        assertEquals(16, resolved.efficiencyCores());
+        assertEquals(CpuTopology.Source.CONFIG_OVERRIDE, resolved.source());
+    }
+
+    @Test
     void noOverrideLeavesDetectionUntouched() {
         CpuTopology detected = new CpuTopology("AMD Ryzen 7 7800X3D", 16, 8, 8, 0, true,
                 CpuTopology.Source.PROC_CPUINFO);

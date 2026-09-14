@@ -16,8 +16,7 @@ public final class SpecTuneCli {
 
     public static void main(String[] args) {
         SpecTuneConfig config = SpecTuneConfig.defaults();
-        CpuTopology cpu = config.applyOverrides(CpuDetector.detect());
-        MachineProfile profile = MachineProfile.capture(cpu);
+        MachineProfile profile = MachineProfile.capture(config.resolveTopology());
 
         GpuInfo gpu = args.length > 0 ? GpuInfo.of("command line", String.join(" ", args), "unknown") : null;
         TuningPlan plan = TuningPlanner.plan(profile, config, gpu);

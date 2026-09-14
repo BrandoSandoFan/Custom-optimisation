@@ -1,6 +1,5 @@
 package dev.brandosandofan.spectune.fabric;
 
-import dev.brandosandofan.spectune.core.CpuDetector;
 import dev.brandosandofan.spectune.core.CpuTopology;
 import dev.brandosandofan.spectune.core.GpuInfo;
 import dev.brandosandofan.spectune.core.MachineProfile;
@@ -35,7 +34,9 @@ public final class SpecTune {
     public static synchronized void bootstrap() {
         if (config != null) return;
         config = SpecTuneConfig.load(configFile());
-        CpuTopology cpu = config.applyOverrides(CpuDetector.detect());
+        // Uses the cached topology when there is one: this runs before the game window opens, and
+        // probing costs real start-up time on Windows.
+        CpuTopology cpu = config.resolveTopology();
         profile = MachineProfile.capture(cpu);
         plan = TuningPlanner.plan(profile, config, null);
         try {

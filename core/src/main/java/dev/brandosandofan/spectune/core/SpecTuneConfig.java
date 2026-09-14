@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Properties;
 
 /**
@@ -123,6 +124,56 @@ public final class SpecTuneConfig {
 
     public String get(String key) {
         return properties.getProperty(key);
+    }
+
+    /**
+     * Resolves the CPU topology, preferring the cached result.
+     *
+     * <p>Detection on Windows spawns PowerShell, which costs a second or more of start-up — an
+     * unreasonable price for a performance mod to charge on every launch. The answer does not change
+     * between launches, so it is cached and only re-probed when the logical core count no longer
+     * matches (different machine, or cores enabled or disabled in firmware).
+     */
+    public CpuTopology resolveTopology() {
+        CpuTopology detected = cachedTopology().orElseGet(CpuDetector::detect);
+        cacheTopology(detected);
+        return applyOverrides(detected);
+    }
+
+    Optional<CpuTopology> cachedTopology() {
+        String brand = properties.getProperty("cpu.cache.brand");
+        int logical = integer("cpu.cache.logical", 0);
+        int physical = integer("cpu.cache.physical", 0);
+        int performance = integer("cpu.cache.performance", 0);
+        int efficiency = integer("cpu.cache.efficiency", -1);
+        if (brand == null || logical < 1 || physical < 1 || performance < 1 || efficiency < 0) {
+            return Optional.empty();
+        }
+        if (logical != Runtime.getRuntime().availableProcessors()) {
+            return Optional.empty(); // The machine changed under us; probe again.
+        }
+        CpuTopology.Source source;
+        try {
+            source = CpuTopology.Source.valueOf(properties.getProperty("cpu.cache.source", "FALLBACK"));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(new CpuTopology(brand, logical, physical, performance, efficiency,
+                    bool("cpu.cache.smt", logical > physical), source));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty(); // Hand-edited nonsense; discard it.
+        }
+    }
+
+    void cacheTopology(CpuTopology topology) {
+        properties.setProperty("cpu.cache.brand", topology.brand());
+        properties.setProperty("cpu.cache.logical", Integer.toString(topology.logicalCores()));
+        properties.setProperty("cpu.cache.physical", Integer.toString(topology.physicalCores()));
+        properties.setProperty("cpu.cache.performance", Integer.toString(topology.performanceCores()));
+        properties.setProperty("cpu.cache.efficiency", Integer.toString(topology.efficiencyCores()));
+        properties.setProperty("cpu.cache.smt", Boolean.toString(topology.smt()));
+        properties.setProperty("cpu.cache.source", topology.source().name());
     }
 
     /**
