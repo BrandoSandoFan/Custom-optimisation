@@ -13,6 +13,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
@@ -26,6 +27,12 @@ import org.lwjgl.opengl.GL11;
  * vanilla's Video Settings screen with SpecTune's own, and registers {@code /spectune}.
  */
 public final class SpecTuneClient implements ClientModInitializer {
+
+    /**
+     * Set by the {@code BEFORE_INIT} hook, consumed by the next {@code END_CLIENT_TICK}. Both run
+     * on the render thread only, so this needs no synchronization.
+     */
+    private static Screen pendingReplacementParent;
 
     @Override
     public void onInitializeClient() {
@@ -58,33 +65,48 @@ public final class SpecTuneClient implements ClientModInitializer {
         // "return to this when done" parent in a private field regardless of which vanilla class
         // declares it, so it is read generically rather than guessed at by name.
         //
-        // The swap itself is deferred to the next tick via client.execute() rather than done here
-        // directly. MinecraftClient.setScreen() assigns currentScreen to the incoming screen
-        // *before* calling its init(), so calling setScreen() again from inside BEFORE_INIT is
-        // reentrant: the inner call's first move is currentScreen.removed() on a screen that has
-        // been assigned but not yet initialised, which is exactly what crashed here - Screen's own
-        // removed() read a list-widget field that only init() populates. Deferring lets the
-        // outer setScreen(videoOptionsScreen) call finish normally - vanilla's screen exists for a
-        // single frame - before this one runs as a plain, non-reentrant call, the same way
-        // /spectune settings already does it safely from a command handler.
+        // The swap itself waits for the next END_CLIENT_TICK rather than happening directly in
+        // BEFORE_INIT, or via client.execute() from inside it (both tried and both crashed the
+        // same way - see below). MinecraftClient.setScreen() assigns currentScreen to the incoming
+        // screen *before* calling its init(), so calling setScreen() again while still inside that
+        // call is reentrant: the inner call's first move is currentScreen.removed() on a screen
+        // that has been assigned but not yet initialised, which is exactly what crashed - Screen's
+        // own removed() read a list-widget field that only init() populates. client.execute() does
+        // not avoid this: MinecraftClient is a ReentrantThreadExecutor, so calling execute() from
+        // its own thread (the render thread, which is where BEFORE_INIT fires) runs the task
+        // immediately rather than queuing it - so it hit the identical crash, just caught silently
+        // by the try/catch that was added at the same time, which is why the redirect quietly did
+        // nothing instead of opening SpecTune's screen. A tick event is a genuinely later,
+        // unnested call: it fires from Minecraft's own game loop, never from inside a screen's own
+        // init/setScreen call chain, so by the time it runs the outer setScreen(videoOptionsScreen)
+        // call - and everything on its stack - has long since returned.
         ScreenEvents.BEFORE_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
             if (!(screen instanceof VideoOptionsScreen)) return;
             if (!SpecTune.config().enabled() || !SpecTune.config().replaceVideoSettingsScreen()) return;
 
             Screen parent = findParentScreen(screen);
             if (parent == null) {
-                SpecTune.LOGGER.debug("Could not find VideoOptionsScreen's parent field; "
+                SpecTune.LOGGER.warn("Could not find VideoOptionsScreen's parent field; "
                         + "leaving the vanilla screen in place.");
                 return;
             }
-            client.execute(() -> {
-                try {
-                    client.setScreen(new SpecTuneOptionsScreen(parent));
-                } catch (RuntimeException e) {
-                    SpecTune.LOGGER.warn("Could not open the SpecTune settings screen; "
-                            + "leaving the vanilla one open.", e);
-                }
-            });
+            pendingReplacementParent = parent;
+        });
+
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (pendingReplacementParent == null) return;
+            Screen parent = pendingReplacementParent;
+            pendingReplacementParent = null;
+
+            // Only replace it if it is still what is open: something else (Escape, a different
+            // click) may have already changed the screen in the meantime.
+            if (!(client.currentScreen instanceof VideoOptionsScreen)) return;
+            try {
+                client.setScreen(new SpecTuneOptionsScreen(parent));
+            } catch (RuntimeException e) {
+                SpecTune.LOGGER.warn("Could not open the SpecTune settings screen; "
+                        + "leaving the vanilla one open.", e);
+            }
         });
     }
 
