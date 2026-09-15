@@ -51,8 +51,8 @@ public final class SpecTune {
      * which is only readable after a GL context exists.
      */
     public static synchronized void attachGpu(GpuInfo detected) {
-        gpu = detected;
-        plan = TuningPlanner.plan(profile, config, detected);
+        gpu = config.applyGpuOverride(detected);
+        plan = TuningPlanner.plan(profile, config, gpu);
     }
 
     public static synchronized SpecTuneConfig config() {

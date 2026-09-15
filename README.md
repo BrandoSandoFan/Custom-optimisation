@@ -21,7 +21,10 @@ pools lazily.
 
 **Checks which GPU you are on.** It reads the OpenGL renderer string at client start. If the game
 came up on the integrated GPU — the single most common and most expensive laptop misconfiguration —
-it says so in the log and in `/spectune`, in red.
+it says so in the log and in `/spectune`, in red. Under [VulkanMod](https://modrinth.com/mod/vulkanmod)
+there is no OpenGL context to read, so SpecTune skips the probe instead of risking a crash on the raw
+LWJGL call, and video tuning falls back to a conservative tier; set `gpu.tierOverride` in
+`spectune.properties` to restore tier-based tuning.
 
 **Reviews the JVM and tells you what is wrong with it.** Heap above the compressed-oops threshold,
 mismatched `-Xms`/`-Xmx`, a stop-the-world collector, non-generational ZGC, a pre-21 runtime. It
@@ -87,6 +90,7 @@ JVM and prints the recommended arguments. Useful before you install anything.
 | `video.apply` | `once` | `off`, `once`, or `always` |
 | `video.renderDistanceOverride` | `0` | Explicit render distance; `0` means derive it |
 | `gpu.warnOnIntegrated` | `true` | Shout when rendering on the iGPU |
+| `gpu.tierOverride` | *(empty)* | Explicit GPU tier (`HIGH`/`MID`/`LOW`/`INTEGRATED`); empty means derive it, or fall back to a conservative default where it cannot (VulkanMod) |
 | `cpu.performanceCores` | `0` | Override the detected P-core count |
 | `cpu.efficiencyCores` | `0` | Override the detected E-core count |
 | `report.write` | `true` | Write `config/spectune-report.txt` |

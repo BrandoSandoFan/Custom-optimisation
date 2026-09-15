@@ -71,6 +71,16 @@ SpecTune tunes; it does not rewrite. These do, and they are worth more:
 
 Install those first. SpecTune is complementary: it sets the knobs none of them look at.
 
+### VulkanMod
+
+[VulkanMod](https://modrinth.com/mod/vulkanmod) replaces Sodium's role with a Vulkan renderer
+instead of OpenGL, so run one or the other, not both. SpecTune's thread and JVM tuning work exactly
+the same way under it. GPU tier detection does not: VulkanMod never creates an OpenGL context, so
+SpecTune skips the renderer-string probe rather than risk a crash, and falls back to a conservative
+video profile. Set `gpu.tierOverride` in `spectune.properties` to the actual tier of your card
+(`HIGH`, `MID`, `LOW`, or `INTEGRATED`) to get the same render-distance/FPS/particle tuning you'd
+get under OpenGL.
+
 ### Sodium settings worth changing on this machine
 
 - **Chunk update threads**: the count SpecTune suggests in its report (roughly P-cores plus half the

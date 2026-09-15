@@ -127,6 +127,20 @@ lazily well after startup, not just once at init.
 planning depends on GPU tier; thread planning doesn't. Don't assume `SpecTune.gpu()` is non-null
 outside client-side, post-`CLIENT_STARTED` code paths.
 
+### Renderer-replacement mods (VulkanMod) skip the GL probe entirely
+
+`SpecTuneClient.probeGpu()` checks `FabricLoader.isModLoaded("vulkanmod")` before touching GL11.
+VulkanMod never creates a real OpenGL context, and unlike most GL calls it intercepts via mixins,
+a raw LWJGL call like `glGetString` is documented to crash the game rather than throw a catchable
+exception — so this is a hard `if`, not something left to the existing `catch (RuntimeException |
+LinkageError)` below it. When VulkanMod (or any future renderer replacement) is present, tier
+detection falls back to `GpuInfo.Tier.UNKNOWN` and the player sets `gpu.tierOverride` in
+`spectune.properties` (applied in `SpecTune.attachGpu()` via `SpecTuneConfig.applyGpuOverride()`,
+same last-step-only pattern as the CPU overrides) to get tier-based video tuning back. If you add
+support for reading VulkanMod's own Vulkan device name, keep it behind the same mod-id check and
+treat it as best-effort reflection, not a compile-time dependency — `fabric` has no line to
+VulkanMod's internals and those are not a stable API.
+
 ### GPU tier classification is naming-convention-based, and vendors break it
 
 `GpuInfo.classify()` infers `Tier` from patterns in the OpenGL renderer string (`RTX \d{4}`,

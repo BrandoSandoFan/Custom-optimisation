@@ -147,4 +147,43 @@ class SpecTuneConfigTest {
                 CpuTopology.Source.PROC_CPUINFO);
         assertEquals(detected, SpecTuneConfig.defaults().applyOverrides(detected));
     }
+
+    @Test
+    void gpuTierOverrideReplacesAnUndetectedTier() {
+        GpuInfo undetected = GpuInfo.of("unknown", "unavailable (VulkanMod active)", "unknown");
+        SpecTuneConfig config = SpecTuneConfig.defaults();
+        config.set("gpu.tierOverride", "high");
+
+        GpuInfo overridden = config.applyGpuOverride(undetected);
+        assertEquals(GpuInfo.Tier.HIGH, overridden.tier());
+        assertEquals(undetected.renderer(), overridden.renderer(),
+                "the override only replaces the tier, not the (informational) renderer string");
+    }
+
+    @Test
+    void gpuTierOverrideOfIntegratedAlsoFlipsTheIntegratedFlag() {
+        GpuInfo detected = GpuInfo.of("NVIDIA", "NVIDIA GeForce RTX 5080 Laptop GPU", "4.6");
+        SpecTuneConfig config = SpecTuneConfig.defaults();
+        config.set("gpu.tierOverride", "INTEGRATED");
+
+        GpuInfo overridden = config.applyGpuOverride(detected);
+        assertEquals(GpuInfo.Tier.INTEGRATED, overridden.tier());
+        assertTrue(overridden.integrated());
+    }
+
+    @Test
+    void malformedGpuTierOverrideFallsBackToDetection() {
+        GpuInfo detected = GpuInfo.of("NVIDIA", "NVIDIA GeForce RTX 5080 Laptop GPU", "4.6");
+        SpecTuneConfig config = SpecTuneConfig.defaults();
+        config.set("gpu.tierOverride", "ludicrous");
+
+        assertEquals(detected, config.applyGpuOverride(detected));
+        assertEquals(GpuInfo.Tier.HIGH, config.applyGpuOverride(detected).tier());
+    }
+
+    @Test
+    void noGpuTierOverrideLeavesDetectionUntouched() {
+        GpuInfo detected = GpuInfo.of("NVIDIA", "NVIDIA GeForce RTX 5080 Laptop GPU", "4.6");
+        assertEquals(detected, SpecTuneConfig.defaults().applyGpuOverride(detected));
+    }
 }

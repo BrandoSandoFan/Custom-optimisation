@@ -10,6 +10,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
@@ -49,12 +50,28 @@ public final class SpecTuneClient implements ClientModInitializer {
                 dispatcher.register(buildCommand()));
     }
 
+    /** Fabric mod id of VulkanMod, the Vulkan-backed renderer replacement. */
+    private static final String VULKANMOD_ID = "vulkanmod";
+
     /**
      * Reads the renderer strings straight from LWJGL rather than through Minecraft's own debug
      * helper, whose class has moved between versions. Runs on the render thread, where the context
      * is current.
+     *
+     * <p>Renderer-replacement mods that never create a real OpenGL context (VulkanMod chief among
+     * them) are a hard exception: they intercept most OpenGL entry points through their own mixins,
+     * but calling a raw LWJGL function like this one is documented to crash the game rather than
+     * fail into a catchable exception. Detect them by mod id and skip the probe entirely rather than
+     * relying on the {@code catch} below to save us. Set {@code gpu.tierOverride} in
+     * {@code spectune.properties} to restore tier-based video tuning under those renderers.
      */
     private static GpuInfo probeGpu() {
+        if (FabricLoader.getInstance().isModLoaded(VULKANMOD_ID)) {
+            SpecTune.LOGGER.info("VulkanMod detected; skipping the OpenGL renderer probe to avoid "
+                    + "crashing on a call it cannot intercept. Set gpu.tierOverride in {} to restore "
+                    + "tier-based video tuning.", SpecTune.configFile());
+            return GpuInfo.of("unknown", "unavailable (VulkanMod active)", "unknown");
+        }
         try {
             return GpuInfo.of(
                     GL11.glGetString(GL11.GL_VENDOR),

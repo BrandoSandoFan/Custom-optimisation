@@ -68,6 +68,7 @@ public final class SpecTuneConfig {
         out.putIfAbsent("video.apply", videoApplyMode().name().toLowerCase(Locale.ROOT));
         out.putIfAbsent("video.renderDistanceOverride", String.valueOf(renderDistanceOverride()));
         out.putIfAbsent("gpu.warnOnIntegrated", String.valueOf(warnOnIntegratedGpu()));
+        out.putIfAbsent("gpu.tierOverride", gpuTierOverride() == null ? "" : gpuTierOverride().name());
         out.putIfAbsent("cpu.performanceCores", String.valueOf(performanceCoreOverride()));
         out.putIfAbsent("cpu.efficiencyCores", String.valueOf(efficiencyCoreOverride()));
         out.putIfAbsent("report.write", String.valueOf(writeReport()));
@@ -104,6 +105,29 @@ public final class SpecTuneConfig {
 
     public boolean warnOnIntegratedGpu() {
         return bool("gpu.warnOnIntegrated", true);
+    }
+
+    /**
+     * Explicit GPU tier, or {@code null} to derive it from the renderer string. Exists for
+     * renderers that replace Minecraft's OpenGL context (e.g. VulkanMod) where SpecTune cannot
+     * safely probe {@code GL11.glGetString} to classify the GPU itself.
+     */
+    public GpuInfo.Tier gpuTierOverride() {
+        String raw = properties.getProperty("gpu.tierOverride");
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            return GpuInfo.Tier.valueOf(raw.strip().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    /** Applies {@code gpu.tierOverride} to a detected/probed {@link GpuInfo}, if set. */
+    public GpuInfo applyGpuOverride(GpuInfo detected) {
+        GpuInfo.Tier override = gpuTierOverride();
+        if (override == null) return detected;
+        return new GpuInfo(detected.vendor(), detected.renderer(), detected.version(), override,
+                override == GpuInfo.Tier.INTEGRATED);
     }
 
     public int performanceCoreOverride() {
