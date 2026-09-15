@@ -39,6 +39,23 @@ class GpuInfoTest {
     }
 
     @Test
+    void ranksDiscreteIntelArcInsteadOfLeavingItUnknown() {
+        assertEquals(GpuInfo.Tier.MID, GpuInfo.of("Intel", "Intel(R) Arc(TM) A770 Graphics", "4.6").tier());
+        assertEquals(GpuInfo.Tier.MID, GpuInfo.of("Intel", "Intel(R) Arc(TM) A750 Graphics", "4.6").tier());
+        assertEquals(GpuInfo.Tier.MID, GpuInfo.of("Intel", "Intel(R) Arc(TM) B580 Graphics", "4.6").tier());
+        assertEquals(GpuInfo.Tier.LOW, GpuInfo.of("Intel", "Intel(R) Arc(TM) A380 Graphics", "4.6").tier());
+    }
+
+    @Test
+    void ranksRdna4DespiteItsShorterSuffixDigits() {
+        // RX 9070/9060 dropped the third suffix digit older Radeon generations used (7900, 7600, ...).
+        assertEquals(GpuInfo.Tier.HIGH, GpuInfo.of("AMD", "AMD Radeon RX 9070 XT", "4.6").tier());
+        assertEquals(GpuInfo.Tier.MID, GpuInfo.of("AMD", "AMD Radeon RX 9060 XT", "4.6").tier());
+        assertEquals(GpuInfo.Tier.HIGH, GpuInfo.of("AMD", "AMD Radeon RX 7900 XTX", "4.6").tier());
+        assertEquals(GpuInfo.Tier.MID, GpuInfo.of("AMD", "AMD Radeon RX 7600", "4.6").tier());
+    }
+
+    @Test
     void handlesMissingStringsWithoutThrowing() {
         GpuInfo gpu = GpuInfo.of(null, null, null);
         assertEquals(GpuInfo.Tier.UNKNOWN, gpu.tier());
