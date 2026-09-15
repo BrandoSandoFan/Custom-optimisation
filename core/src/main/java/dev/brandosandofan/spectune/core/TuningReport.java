@@ -7,7 +7,8 @@ public final class TuningReport {
 
     private TuningReport() {}
 
-    public static String render(MachineProfile profile, TuningPlan plan, GpuInfo gpu, List<Advice> advice) {
+    public static String render(
+            MachineProfile profile, TuningPlan plan, GpuInfo gpu, PowerPlanInfo power, List<Advice> advice) {
         StringBuilder sb = new StringBuilder();
         sb.append("SpecTune report\n");
         sb.append("===============\n\n");
@@ -16,6 +17,7 @@ public final class TuningReport {
         sb.append("  CPU          ").append(profile.cpu().describe()).append('\n');
         sb.append("  RAM          ").append(format(profile.installedMemoryGiB())).append(" GiB installed\n");
         sb.append("  GPU          ").append(gpu == null ? "not probed yet" : gpu.describe()).append('\n');
+        sb.append("  Power plan   ").append(power == null ? "not probed" : power.describe()).append('\n');
         sb.append("  Java         ").append(profile.javaVendorVersion()).append('\n');
         sb.append("  Collector    ").append(profile.collector()).append('\n');
         sb.append("  Heap         ").append(format(profile.maxHeapGiB())).append(" GiB max\n\n");

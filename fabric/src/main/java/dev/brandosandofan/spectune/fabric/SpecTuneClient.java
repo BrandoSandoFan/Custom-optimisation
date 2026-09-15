@@ -120,7 +120,7 @@ public final class SpecTuneClient implements ClientModInitializer {
                         SpecTune.plan().threads().backgroundThreads()))
                 .formatted(Formatting.AQUA));
 
-        for (Advice advice : JvmAdvisor.review(SpecTune.profile(), gpu)) {
+        for (Advice advice : JvmAdvisor.review(SpecTune.profile(), gpu, SpecTune.powerPlan())) {
             Formatting colour = switch (advice.severity()) {
                 case CRITICAL -> Formatting.RED;
                 case WARN -> Formatting.YELLOW;

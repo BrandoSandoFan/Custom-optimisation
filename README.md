@@ -28,6 +28,11 @@ mismatched `-Xms`/`-Xmx`, a stop-the-world collector, non-generational ZGC, a pr
 cannot change any of these at runtime, so it reports them and generates the argument line you should
 be using. `/spectune args` prints it in-game; `config/spectune-report.txt` holds the full report.
 
+**Checks the OS power policy.** Reads Windows' active power scheme (`powercfg /getactivescheme`) or
+the Linux cpufreq governor. "Balanced" and "powersave" both throttle CPU clocks under exactly the
+bursty load pattern a game produces — no amount of thread or JVM tuning recovers clock speed the OS
+itself is withholding. Flagged as a warning (Balanced) or critical finding (Power saver).
+
 **Applies a video profile matched to the detected GPU tier and RAM.** Once, by default — it records
 that it has done so and then leaves your settings alone.
 

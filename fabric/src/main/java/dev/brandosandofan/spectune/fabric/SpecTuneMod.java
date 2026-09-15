@@ -25,7 +25,7 @@ public final class SpecTuneMod implements ModInitializer {
         tuner = new ThreadTuner(SpecTune.plan().threads());
         tuner.start();
 
-        List<Advice> advice = JvmAdvisor.review(SpecTune.profile(), SpecTune.gpu());
+        List<Advice> advice = JvmAdvisor.review(SpecTune.profile(), SpecTune.gpu(), SpecTune.powerPlan());
         for (Advice item : advice) {
             switch (item.severity()) {
                 case CRITICAL -> SpecTune.LOGGER.error(item.format());
@@ -45,6 +45,7 @@ public final class SpecTuneMod implements ModInitializer {
                 SpecTune.profile(),
                 SpecTune.plan(),
                 SpecTune.gpu(),
-                JvmAdvisor.review(SpecTune.profile(), SpecTune.gpu()));
+                SpecTune.powerPlan(),
+                JvmAdvisor.review(SpecTune.profile(), SpecTune.gpu(), SpecTune.powerPlan()));
     }
 }
