@@ -138,7 +138,6 @@ public final class SpecTuneOptionsScreen extends Screen {
                 v -> options.getGraphicsMode().setValue(v ? GraphicsMode.FANCY : GraphicsMode.FAST));
         addSlider(x, "Field of View", 30, 110, options.getFov().getValue(),
                 v -> Integer.toString(v), v -> options.getFov().setValue(v));
-        addToggle(x, "Dynamic FOV", options.getDynamicFov().getValue(), v -> options.getDynamicFov().setValue(v));
         addSlider(x, "Biome Blend", 0, 7, options.getBiomeBlendRadius().getValue(),
                 v -> Integer.toString(v), v -> options.getBiomeBlendRadius().setValue(v));
         addSlider(x, "Mipmap Levels", 0, 4, options.getMipmapLevels().getValue(),
