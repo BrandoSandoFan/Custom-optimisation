@@ -20,6 +20,7 @@ class SpecTuneConfigTest {
         assertEquals(SpecTuneConfig.ApplyMode.ONCE, config.videoApplyMode(),
                 "video settings must not be rewritten behind the player's back on every launch");
         assertEquals(0, config.backgroundThreadOverride());
+        assertTrue(config.replaceVideoSettingsScreen());
     }
 
     @Test
