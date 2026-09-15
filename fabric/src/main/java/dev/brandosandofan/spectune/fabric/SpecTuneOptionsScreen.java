@@ -127,6 +127,10 @@ public final class SpecTuneOptionsScreen extends Screen {
         addToggle(x, "Fullscreen", options.getFullscreen().getValue(), v -> options.getFullscreen().setValue(v));
         addSlider(x, "GUI Scale", 0, 4, options.getGuiScale().getValue(),
                 v -> v == 0 ? "Auto" : Integer.toString(v), v -> options.getGuiScale().setValue(v));
+        addSlider(x, "Brightness", 0, 100, percentOf(options.getGamma().getValue()),
+                v -> v + "%", v -> options.getGamma().setValue(v / 100.0));
+        addToggle(x, "Smooth Lighting", options.getAo().getValue(), v -> options.getAo().setValue(v));
+        addToggle(x, "View Bobbing", options.getBobView().getValue(), v -> options.getBobView().setValue(v));
     }
 
     private void buildQualityTab(GameOptions options, int x) {
@@ -134,17 +138,25 @@ public final class SpecTuneOptionsScreen extends Screen {
                 v -> options.getGraphicsMode().setValue(v ? GraphicsMode.FANCY : GraphicsMode.FAST));
         addSlider(x, "Field of View", 30, 110, options.getFov().getValue(),
                 v -> Integer.toString(v), v -> options.getFov().setValue(v));
+        addToggle(x, "Dynamic FOV", options.getDynamicFov().getValue(), v -> options.getDynamicFov().setValue(v));
         addSlider(x, "Biome Blend", 0, 7, options.getBiomeBlendRadius().getValue(),
                 v -> Integer.toString(v), v -> options.getBiomeBlendRadius().setValue(v));
         addSlider(x, "Mipmap Levels", 0, 4, options.getMipmapLevels().getValue(),
                 v -> Integer.toString(v), v -> options.getMipmapLevels().setValue(v));
         addToggle(x, "Entity Shadows", options.getEntityShadows().getValue(),
                 v -> options.getEntityShadows().setValue(v));
+        addSlider(x, "Entity Distance", 50, 500, percentOf(options.getEntityDistanceScaling().getValue()),
+                v -> v + "%", v -> options.getEntityDistanceScaling().setValue(v / 100.0));
         addCycle(x, "Clouds", List.of("Off", "Fast", "Fancy"), cloudIndex(options.getCloudRenderMode().getValue()),
                 i -> options.getCloudRenderMode().setValue(cloudMode(i)));
         addCycle(x, "Particles", List.of("All", "Decreased", "Minimal"),
                 particleIndex(options.getParticles().getValue()),
                 i -> options.getParticles().setValue(particleMode(i)));
+    }
+
+    /** Converts a vanilla {@code 0.0-N.0} fraction option to the whole-percent int this screen's sliders use. */
+    private static int percentOf(double fraction) {
+        return (int) Math.round(fraction * 100);
     }
 
     private void buildSpecTuneTab(int x) {

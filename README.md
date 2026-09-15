@@ -91,9 +91,11 @@ The settings screen is tabbed, the way Sodium's is:
 
 | Tab | Rows |
 |---|---|
-| Video | Render distance, simulation distance, max FPS, VSync, fullscreen, GUI scale |
-| Quality | Fancy graphics, field of view, biome blend, mipmaps, entity shadows, clouds, particles |
+| Video | Render distance, simulation distance, max FPS, VSync, fullscreen, GUI scale, brightness, smooth lighting, view bobbing |
+| Quality | Fancy graphics, field of view, dynamic FOV, biome blend, mipmaps, entity shadows, entity distance, clouds, particles |
 | SpecTune | Worker thread override, priority tuning, integrated-GPU warning, video apply mode |
+
+Every row vanilla's own Video Settings screen has is covered, so nothing is lost by replacing it.
 
 Video and Quality rows edit the same options the vanilla screen does - changes are visible
 immediately - and are written to `options.txt` on close; the SpecTune tab's rows write to
