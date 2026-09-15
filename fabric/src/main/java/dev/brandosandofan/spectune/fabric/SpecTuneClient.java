@@ -5,25 +5,19 @@ import dev.brandosandofan.spectune.core.Advice;
 import dev.brandosandofan.spectune.core.GpuInfo;
 import dev.brandosandofan.spectune.core.JvmAdvisor;
 import dev.brandosandofan.spectune.core.SpecTuneConfig;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.Locale;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
-import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.option.VideoOptionsScreen;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.lwjgl.opengl.GL11;
 
 /**
- * Client entrypoint: probes the GPU once a GL context exists, applies the video profile, replaces
- * vanilla's Video Settings screen with SpecTune's own, and registers {@code /spectune}.
+ * Client entrypoint: probes the GPU once a GL context exists, applies the video profile, and
+ * registers {@code /spectune}.
  */
 public final class SpecTuneClient implements ClientModInitializer {
 
@@ -53,54 +47,6 @@ public final class SpecTuneClient implements ClientModInitializer {
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registry) ->
                 dispatcher.register(buildCommand()));
-
-        // Swap out vanilla's Video Settings screen for SpecTune's own before it ever builds a
-        // widget, so there is no flash of the screen being replaced. No mixin: Screen keeps its
-        // "return to this when done" parent in a private field regardless of which vanilla class
-        // declares it, so it is read generically rather than guessed at by name.
-        ScreenEvents.BEFORE_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
-            if (!(screen instanceof VideoOptionsScreen)) return;
-            if (!SpecTune.config().enabled() || !SpecTune.config().replaceVideoSettingsScreen()) return;
-
-            Screen parent = findParentScreen(screen);
-            if (parent == null) {
-                SpecTune.LOGGER.debug("Could not find VideoOptionsScreen's parent field; "
-                        + "leaving the vanilla screen in place.");
-                return;
-            }
-            client.setScreen(new SpecTuneOptionsScreen(parent));
-        });
-    }
-
-    /**
-     * Finds the {@code Screen}-typed field vanilla's options screens use to remember what to
-     * return to on close. Reflection instead of a mixin: the field's owning class and exact name
-     * have moved between versions, but every version has exactly one such field.
-     */
-    private static Screen findParentScreen(Screen screen) {
-        Field fallback = null;
-        for (Class<?> type = screen.getClass(); type != null; type = type.getSuperclass()) {
-            for (Field field : type.getDeclaredFields()) {
-                if (Modifier.isStatic(field.getModifiers())) continue;
-                if (!Screen.class.isAssignableFrom(field.getType())) continue;
-                if (field.getName().toLowerCase(Locale.ROOT).contains("parent")) {
-                    Screen parent = readScreenField(field, screen);
-                    if (parent != null) return parent;
-                }
-                if (fallback == null) fallback = field;
-            }
-        }
-        return fallback == null ? null : readScreenField(fallback, screen);
-    }
-
-    private static Screen readScreenField(Field field, Screen screen) {
-        try {
-            field.setAccessible(true);
-            Object value = field.get(screen);
-            return value instanceof Screen parent ? parent : null;
-        } catch (ReflectiveOperationException | RuntimeException e) {
-            return null;
-        }
     }
 
     /**

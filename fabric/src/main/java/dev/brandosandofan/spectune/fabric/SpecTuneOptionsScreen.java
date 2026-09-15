@@ -21,16 +21,12 @@ import net.minecraft.text.Text;
  * warning knobs, as plain sliders and cycle buttons, with one button that resets everything here
  * back to SpecTune's recommendation for the detected machine.
  *
- * <p>This replaces vanilla's own Video Settings screen: {@code SpecTuneClient} intercepts the
- * moment a {@code VideoOptionsScreen} would open and substitutes this one instead (toggle with
- * {@code gui.replaceVideoSettings} in {@code spectune.properties}), the way Sodium's options
- * screen stands in for the ones it covers. It is also reachable directly with
- * {@code /spectune settings}. The video rows edit the same {@link GameOptions} fields the vanilla
- * screen does - changes are visible immediately - and are written to {@code options.txt} on
- * close; the SpecTune-specific rows are written to {@code spectune.properties} on close. The
- * worker-thread row is the one exception: {@link SpecTunePreLaunch} can only size that pool
- * before the game window opens, so a change there needs a relaunch, which the row's own label
- * says.
+ * <p>Reachable with {@code /spectune settings}. The video rows edit the same {@link GameOptions}
+ * fields the vanilla Video Settings screen does - changes are visible immediately - and are
+ * written to {@code options.txt} on close; the SpecTune-specific rows are written to {@code
+ * spectune.properties} on close. The worker-thread row is the one exception: {@link
+ * SpecTunePreLaunch} can only size that pool before the game window opens, so a change there
+ * needs a relaunch, which the row's own label says.
  */
 public final class SpecTuneOptionsScreen extends Screen {
 
