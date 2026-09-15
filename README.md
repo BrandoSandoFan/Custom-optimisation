@@ -87,11 +87,17 @@ JVM and prints the recommended arguments. Useful before you install anything.
 | `/spectune apply` | Re-apply the video profile now |
 | `/spectune settings` | Opens the settings screen directly (same as Options > Video Settings) |
 
-The settings screen is a two-column layout of every video setting SpecTune tunes (render/
-simulation distance, max FPS, VSync, graphics mode, biome blend, mipmaps, entity shadows, clouds,
-particles) plus its own knobs (worker thread override, priority tuning, integrated-GPU warning,
-video apply mode). Video rows apply immediately and write to `options.txt` on close; the SpecTune
-rows write to `spectune.properties` on close. **Reset to SpecTune Defaults** clears every row back
+The settings screen is tabbed, the way Sodium's is:
+
+| Tab | Rows |
+|---|---|
+| Video | Render distance, simulation distance, max FPS, VSync, fullscreen, GUI scale |
+| Quality | Fancy graphics, field of view, biome blend, mipmaps, entity shadows, clouds, particles |
+| SpecTune | Worker thread override, priority tuning, integrated-GPU warning, video apply mode |
+
+Video and Quality rows edit the same options the vanilla screen does - changes are visible
+immediately - and are written to `options.txt` on close; the SpecTune tab's rows write to
+`spectune.properties` on close. **Reset to SpecTune Defaults** clears every row on every tab back
 to SpecTune's own recommendation for the detected machine - not vanilla's generic defaults, since
 those ignore your hardware - and re-applies it on the spot. The worker-thread row is the one
 exception: it cannot take effect until the next launch, which is why it says so. Set
