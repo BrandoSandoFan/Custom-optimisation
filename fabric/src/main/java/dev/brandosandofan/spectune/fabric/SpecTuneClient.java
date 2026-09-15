@@ -94,6 +94,11 @@ public final class SpecTuneClient implements ClientModInitializer {
                                     : "Video profile is disabled in spectune.properties.")
                             .formatted(changed ? Formatting.GREEN : Formatting.YELLOW));
                     return 1;
+                }))
+                .then(ClientCommandManager.literal("settings").executes(context -> {
+                    MinecraftClient client = MinecraftClient.getInstance();
+                    client.setScreen(new SpecTuneOptionsScreen(client.currentScreen));
+                    return 1;
                 }));
     }
 
@@ -101,7 +106,7 @@ public final class SpecTuneClient implements ClientModInitializer {
     private static SpecTuneConfig forceApply() {
         SpecTuneConfig config = SpecTune.config();
         if (config.videoApplyMode() != SpecTuneConfig.ApplyMode.OFF) {
-            config.set("video.appliedGeneration", "0");
+            VideoTuner.clearAppliedMarker(config);
         }
         return config;
     }
@@ -129,6 +134,8 @@ public final class SpecTuneClient implements ClientModInitializer {
             source.sendFeedback(Text.literal(advice.format()).formatted(colour));
         }
         source.sendFeedback(Text.literal("Full report: config/spectune-report.txt")
+                .formatted(Formatting.DARK_GRAY));
+        source.sendFeedback(Text.literal("Run /spectune settings for the advanced settings screen.")
                 .formatted(Formatting.DARK_GRAY));
     }
 }

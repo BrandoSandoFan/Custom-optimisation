@@ -118,6 +118,19 @@ public final class SpecTuneConfig {
         return bool("report.write", true);
     }
 
+    /**
+     * Clears every override the in-game settings screen exposes back to its documented default:
+     * auto-sized threads, priority tuning on, GPU warning on, "apply once". Deliberately narrower
+     * than the full file - {@code cpu.*} overrides are a separate, expert-only concern this reset
+     * does not touch.
+     */
+    public void resetTunables() {
+        properties.setProperty("threads.backgroundOverride", "0");
+        properties.setProperty("threads.priorityTuning", "true");
+        properties.setProperty("gpu.warnOnIntegrated", "true");
+        properties.setProperty("video.apply", "once");
+    }
+
     public void set(String key, String value) {
         properties.setProperty(key, value);
     }

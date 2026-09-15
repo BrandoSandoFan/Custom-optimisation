@@ -63,6 +63,11 @@ public final class VideoTuner {
         return true;
     }
 
+    /** Clears the "already applied" marker so the next {@link #apply} call re-applies under {@code ONCE}. */
+    public static void clearAppliedMarker(SpecTuneConfig config) {
+        config.set(MARKER_KEY, "0");
+    }
+
     private static boolean alreadyApplied(SpecTuneConfig config) {
         String marker = config.get(MARKER_KEY);
         if (marker == null) return false;

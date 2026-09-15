@@ -142,6 +142,24 @@ class SpecTuneConfigTest {
     }
 
     @Test
+    void resetTunablesClearsTheOverridesTheSettingsScreenExposes() {
+        SpecTuneConfig config = SpecTuneConfig.defaults();
+        config.set("threads.backgroundOverride", "16");
+        config.set("threads.priorityTuning", "false");
+        config.set("gpu.warnOnIntegrated", "false");
+        config.set("video.apply", "always");
+        config.set("cpu.performanceCores", "8"); // must survive the reset
+
+        config.resetTunables();
+
+        assertEquals(0, config.backgroundThreadOverride());
+        assertTrue(config.priorityTuning());
+        assertTrue(config.warnOnIntegratedGpu());
+        assertEquals(SpecTuneConfig.ApplyMode.ONCE, config.videoApplyMode());
+        assertEquals(8, config.performanceCoreOverride(), "CPU topology overrides are a separate concern");
+    }
+
+    @Test
     void noOverrideLeavesDetectionUntouched() {
         CpuTopology detected = new CpuTopology("AMD Ryzen 7 7800X3D", 16, 8, 8, 0, true,
                 CpuTopology.Source.PROC_CPUINFO);
