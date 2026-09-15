@@ -24,6 +24,7 @@ public record GpuInfo(String vendor, String renderer, String version, Tier tier,
     private static final Pattern NVIDIA_RTX = Pattern.compile("rtx\\s*(\\d{4})");
     private static final Pattern NVIDIA_GTX = Pattern.compile("gtx\\s*(\\d{3,4})");
     private static final Pattern RADEON_RX = Pattern.compile("rx\\s*(\\d{4})");
+    private static final Pattern INTEL_ARC_DISCRETE = Pattern.compile("\\barc\\b.*\\b[ab](\\d{3})\\b");
 
     public static GpuInfo of(String vendor, String renderer, String version) {
         String r = normalise(renderer);
@@ -73,7 +74,16 @@ public record GpuInfo(String vendor, String renderer, String version, Tier tier,
         Matcher rx = RADEON_RX.matcher(renderer);
         if (rx.find()) {
             int model = Integer.parseInt(rx.group(1));
-            return model % 1000 >= 700 ? Tier.HIGH : Tier.MID;
+            int rank = model % 1000;
+            // RDNA4 (RX 9070/9060) dropped the third suffix digit that every earlier generation
+            // used (RX 7900/7800/7600), so "70" here means the same tier "700" meant before it.
+            if (rank < 100) rank *= 10;
+            return rank >= 700 ? Tier.HIGH : Tier.MID;
+        }
+        Matcher arc = INTEL_ARC_DISCRETE.matcher(renderer);
+        if (arc.find()) {
+            int model = Integer.parseInt(arc.group(1));
+            return model >= 500 ? Tier.MID : Tier.LOW;
         }
         if (renderer.contains("apple m")) return Tier.MID;
         return Tier.UNKNOWN;

@@ -127,6 +127,18 @@ lazily well after startup, not just once at init.
 planning depends on GPU tier; thread planning doesn't. Don't assume `SpecTune.gpu()` is non-null
 outside client-side, post-`CLIENT_STARTED` code paths.
 
+### GPU tier classification is naming-convention-based, and vendors break it
+
+`GpuInfo.classify()` infers `Tier` from patterns in the OpenGL renderer string (`RTX \d{4}`,
+`RX \d{4}`, Arc's `[ab]\d{3}`), not from any capability database, so it silently misclassifies any
+GPU whose model-number convention doesn't match what earlier entries in the same vendor line used.
+This already happened once: AMD's RDNA4 RX 9000 series dropped the third suffix digit every prior
+generation used (RX 7900/6800 vs. RX 9070), which made a straight `% 1000 >= 700` comparison
+undertier real cards until `classify()` special-cased suffixes below 100. When a new GPU generation
+ships, check its renderer string against `classify()` directly rather than assuming the existing
+regexes cover it — a wrong tier changes render distance, FPS cap, and particle/cloud settings, not
+just a cosmetic label.
+
 ### Config philosophy (`SpecTuneConfig`)
 
 Every inferred/detected value is overridable via `spectune.properties`, and `0`/absent always means
