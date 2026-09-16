@@ -19,10 +19,11 @@ public final class SpecTuneCli {
         MachineProfile profile = MachineProfile.capture(config.resolveTopology());
 
         GpuInfo gpu = args.length > 0 ? GpuInfo.of("command line", String.join(" ", args), "unknown") : null;
+        PowerPlanInfo power = PowerPlanDetector.detect();
         TuningPlan plan = TuningPlanner.plan(profile, config, gpu);
-        List<Advice> advice = JvmAdvisor.review(profile, gpu);
+        List<Advice> advice = JvmAdvisor.review(profile, gpu, power);
 
-        System.out.println(TuningReport.render(profile, plan, gpu, advice));
+        System.out.println(TuningReport.render(profile, plan, gpu, power, advice));
         if (gpu == null) {
             System.out.println("Tip: pass your GPU's renderer string (F3 screen, right-hand column) as an "
                     + "argument to include video settings tuned for it, e.g.");

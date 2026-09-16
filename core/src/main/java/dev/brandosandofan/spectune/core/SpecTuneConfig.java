@@ -71,6 +71,7 @@ public final class SpecTuneConfig {
         out.putIfAbsent("cpu.performanceCores", String.valueOf(performanceCoreOverride()));
         out.putIfAbsent("cpu.efficiencyCores", String.valueOf(efficiencyCoreOverride()));
         out.putIfAbsent("report.write", String.valueOf(writeReport()));
+        out.putIfAbsent("gui.replaceVideoSettings", String.valueOf(replaceVideoSettingsScreen()));
         try (Writer writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
             out.store(writer, "SpecTune - 0 means \"work it out yourself\". See docs/TUNING.md.");
         }
@@ -116,6 +117,28 @@ public final class SpecTuneConfig {
 
     public boolean writeReport() {
         return bool("report.write", true);
+    }
+
+    /**
+     * Whether opening vanilla's Video Settings screen should be redirected to SpecTune's own
+     * settings screen instead. On by default - that screen covers every video row the vanilla one
+     * does, plus the settings a video screen can't - so there is nothing lost by replacing it.
+     */
+    public boolean replaceVideoSettingsScreen() {
+        return bool("gui.replaceVideoSettings", true);
+    }
+
+    /**
+     * Clears every override the in-game settings screen exposes back to its documented default:
+     * auto-sized threads, priority tuning on, GPU warning on, "apply once". Deliberately narrower
+     * than the full file - {@code cpu.*} overrides are a separate, expert-only concern this reset
+     * does not touch.
+     */
+    public void resetTunables() {
+        properties.setProperty("threads.backgroundOverride", "0");
+        properties.setProperty("threads.priorityTuning", "true");
+        properties.setProperty("gpu.warnOnIntegrated", "true");
+        properties.setProperty("video.apply", "once");
     }
 
     public void set(String key, String value) {

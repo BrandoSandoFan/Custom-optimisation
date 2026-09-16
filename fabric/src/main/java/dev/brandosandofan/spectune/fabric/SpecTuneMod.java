@@ -25,7 +25,7 @@ public final class SpecTuneMod implements ModInitializer {
         tuner = new ThreadTuner(SpecTune.plan().threads());
         tuner.start();
 
-        List<Advice> advice = JvmAdvisor.review(SpecTune.profile(), SpecTune.gpu());
+        List<Advice> advice = JvmAdvisor.review(SpecTune.profile(), SpecTune.gpu(), SpecTune.powerPlan());
         for (Advice item : advice) {
             switch (item.severity()) {
                 case CRITICAL -> SpecTune.LOGGER.error(item.format());
@@ -39,12 +39,25 @@ public final class SpecTuneMod implements ModInitializer {
         return tuner;
     }
 
+    /**
+     * Replaces the running tuner with one built from the current plan. Needed because {@link
+     * ThreadTuner} is built around an immutable {@link TuningPlan.ThreadPlan}, so a live change to
+     * priority tuning (on/off) or the priorities themselves needs a new instance rather than a
+     * mutation.
+     */
+    static synchronized void restartTuner() {
+        if (tuner != null) tuner.stop();
+        tuner = new ThreadTuner(SpecTune.plan().threads());
+        tuner.start();
+    }
+
     /** Renders the current state of everything SpecTune knows. */
     static String report() {
         return TuningReport.render(
                 SpecTune.profile(),
                 SpecTune.plan(),
                 SpecTune.gpu(),
-                JvmAdvisor.review(SpecTune.profile(), SpecTune.gpu()));
+                SpecTune.powerPlan(),
+                JvmAdvisor.review(SpecTune.profile(), SpecTune.gpu(), SpecTune.powerPlan()));
     }
 }

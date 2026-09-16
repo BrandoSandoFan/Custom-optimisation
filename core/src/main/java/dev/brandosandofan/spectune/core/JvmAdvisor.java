@@ -23,13 +23,14 @@ public final class JvmAdvisor {
 
     private JvmAdvisor() {}
 
-    public static List<Advice> review(MachineProfile profile, GpuInfo gpu) {
+    public static List<Advice> review(MachineProfile profile, GpuInfo gpu, PowerPlanInfo power) {
         List<Advice> advice = new ArrayList<>();
         reviewGpu(gpu, advice);
         reviewHeap(profile, advice);
         reviewCollector(profile, advice);
         reviewFlags(profile, advice);
         reviewCpu(profile, advice);
+        reviewPowerPlan(power, advice);
         return advice;
     }
 
@@ -151,6 +152,29 @@ public final class JvmAdvisor {
                     "Detected " + cpu.performanceCores() + "P + " + cpu.efficiencyCores() + "E from core counts. "
                             + "If that is wrong, set cpu.performanceCores/cpu.efficiencyCores in "
                             + "spectune.properties."));
+        }
+    }
+
+    private static void reviewPowerPlan(PowerPlanInfo power, List<Advice> advice) {
+        if (power == null || power.profile() == PowerPlanInfo.Profile.UNKNOWN) return;
+
+        if (power.profile() == PowerPlanInfo.Profile.POWER_SAVER) {
+            advice.add(Advice.critical(
+                    "OS power plan is capping CPU clocks",
+                    "Active power policy is \"" + power.label() + "\", which caps CPU frequency well below "
+                            + "what the hardware can sustain. No thread or JVM tuning recovers clock speed the "
+                            + "OS itself is refusing to give the process.",
+                    "Windows: Settings > System > Power > Power mode, set to Best performance (plugged in). "
+                            + "Linux: sudo cpupower frequency-set -g performance."));
+        } else if (power.profile() == PowerPlanInfo.Profile.BALANCED) {
+            advice.add(Advice.warn(
+                    "OS power plan throttles under light load",
+                    "Active power policy is \"" + power.label() + "\", which ramps clocks down between load "
+                            + "spikes rather than holding them. Minecraft's frame pacing is exactly that "
+                            + "spiky pattern, so this shows up as stutter and frame-time variance, not a "
+                            + "lower average FPS.",
+                    "Windows: Settings > System > Power > Power mode, set to Best performance (plugged in). "
+                            + "Linux: sudo cpupower frequency-set -g performance."));
         }
     }
 

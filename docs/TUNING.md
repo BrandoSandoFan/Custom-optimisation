@@ -56,6 +56,12 @@ Java has no portable affinity API — but priority is an input to the scheduler'
 on both Windows and Linux, so widening the gap between the render thread and the chunk workers
 measurably reduces frame-time variance on hybrid parts.
 
+SpecTune also checks this for you now: it reads the active Windows power scheme (or the Linux
+cpufreq governor) at start-up and reports it as a warning or critical finding in `/spectune` and
+`config/spectune-report.txt` if it is throttling. It cannot change the OS setting — that needs the
+steps above — but it tells you when that is the actual cause of a session's stutter instead of
+leaving you to guess.
+
 ## 4. Install the mods that actually rewrite the engine
 
 SpecTune tunes; it does not rewrite. These do, and they are worth more:

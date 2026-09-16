@@ -36,41 +36,41 @@ class JvmAdvisorTest {
 
     @Test
     void warnsAboutAnOversizedHeap() {
-        List<Advice> advice = JvmAdvisor.review(profile(40, "G1", 21, List.of("-Xmx40G")), null);
+        List<Advice> advice = JvmAdvisor.review(profile(40, "G1", 21, List.of("-Xmx40G")), null, null);
         assertTrue(mentions(advice, "compressed-oops"));
         assertTrue(advice.stream().anyMatch(a -> a.severity() == Advice.Severity.WARN));
     }
 
     @Test
     void leavesASensibleHeapAlone() {
-        List<Advice> advice = JvmAdvisor.review(profile(12, "Generational ZGC", 21, List.of()), null);
+        List<Advice> advice = JvmAdvisor.review(profile(12, "Generational ZGC", 21, List.of()), null, null);
         assertFalse(mentions(advice, "compressed-oops"));
         assertFalse(mentions(advice, "heap is small"));
     }
 
     @Test
     void warnsAboutStopTheWorldCollectors() {
-        List<Advice> advice = JvmAdvisor.review(profile(8, "Parallel", 21, List.of()), null);
+        List<Advice> advice = JvmAdvisor.review(profile(8, "Parallel", 21, List.of()), null, null);
         assertTrue(mentions(advice, "throughput collector"));
         assertTrue(mentions(advice, "Generational ZGC"));
     }
 
     @Test
     void tellsZgcUsersToTurnOnGenerationalMode() {
-        List<Advice> advice = JvmAdvisor.review(profile(8, "ZGC", 21, List.of()), null);
+        List<Advice> advice = JvmAdvisor.review(profile(8, "ZGC", 21, List.of()), null, null);
         assertTrue(mentions(advice, "ZGenerational"));
     }
 
     @Test
     void doesNotSuggestARemovedFlagOnNewerJava() {
-        List<Advice> advice = JvmAdvisor.review(profile(8, "ZGC", 25, List.of()), null);
+        List<Advice> advice = JvmAdvisor.review(profile(8, "ZGC", 25, List.of()), null, null);
         assertTrue(mentions(advice, "default on Java 25"));
     }
 
     @Test
     void escalatesWhenTheGameIsOnTheIntegratedGpu() {
         GpuInfo igpu = GpuInfo.of("Intel", "Intel(R) Arc(TM) Graphics", "4.6");
-        List<Advice> advice = JvmAdvisor.review(profile(8, "Generational ZGC", 21, List.of()), igpu);
+        List<Advice> advice = JvmAdvisor.review(profile(8, "Generational ZGC", 21, List.of()), igpu, null);
         assertTrue(advice.stream().anyMatch(a -> a.severity() == Advice.Severity.CRITICAL));
         assertTrue(mentions(advice, "integrated"));
     }
@@ -79,9 +79,37 @@ class JvmAdvisorTest {
     void staysQuietOnAWellConfiguredMachine() {
         GpuInfo gpu = GpuInfo.of("NVIDIA", "NVIDIA GeForce RTX 5080 Laptop GPU", "4.6");
         List<Advice> advice = JvmAdvisor.review(
-                profile(12, "Generational ZGC", 21, List.of("-Xmx12G", "-Xms12G", "-XX:+AlwaysPreTouch")), gpu);
+                profile(12, "Generational ZGC", 21, List.of("-Xmx12G", "-Xms12G", "-XX:+AlwaysPreTouch")), gpu,
+                null);
         assertTrue(advice.stream().noneMatch(a -> a.severity() != Advice.Severity.INFO),
                 () -> "unexpected warning: " + advice);
+    }
+
+    @Test
+    void criticalWhenOsPowerPlanIsPowerSaver() {
+        PowerPlanInfo saver = new PowerPlanInfo(PowerPlanInfo.Profile.POWER_SAVER, "Power saver");
+        List<Advice> advice = JvmAdvisor.review(profile(8, "Generational ZGC", 21, List.of()), null, saver);
+        assertTrue(advice.stream().anyMatch(a -> a.severity() == Advice.Severity.CRITICAL));
+        assertTrue(mentions(advice, "capping cpu clocks"));
+    }
+
+    @Test
+    void warnsWhenOsPowerPlanIsBalanced() {
+        PowerPlanInfo balanced = new PowerPlanInfo(PowerPlanInfo.Profile.BALANCED, "Balanced");
+        List<Advice> advice = JvmAdvisor.review(profile(8, "Generational ZGC", 21, List.of()), null, balanced);
+        assertTrue(advice.stream().anyMatch(a -> a.severity() == Advice.Severity.WARN));
+        assertTrue(mentions(advice, "throttles under light load"));
+    }
+
+    @Test
+    void staysQuietWhenOsPowerPlanIsHighPerformanceOrUnknown() {
+        PowerPlanInfo high = new PowerPlanInfo(PowerPlanInfo.Profile.HIGH_PERFORMANCE, "High performance");
+        List<Advice> advice = JvmAdvisor.review(profile(8, "Generational ZGC", 21, List.of()), null, high);
+        assertFalse(mentions(advice, "power plan"));
+
+        List<Advice> unknown = JvmAdvisor.review(
+                profile(8, "Generational ZGC", 21, List.of()), null, PowerPlanInfo.unknown());
+        assertFalse(mentions(unknown, "power plan"));
     }
 
     @Test

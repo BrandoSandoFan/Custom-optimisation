@@ -3,6 +3,8 @@ package dev.brandosandofan.spectune.fabric;
 import dev.brandosandofan.spectune.core.CpuTopology;
 import dev.brandosandofan.spectune.core.GpuInfo;
 import dev.brandosandofan.spectune.core.MachineProfile;
+import dev.brandosandofan.spectune.core.PowerPlanDetector;
+import dev.brandosandofan.spectune.core.PowerPlanInfo;
 import dev.brandosandofan.spectune.core.SpecTuneConfig;
 import dev.brandosandofan.spectune.core.TuningPlan;
 import dev.brandosandofan.spectune.core.TuningPlanner;
@@ -24,6 +26,7 @@ public final class SpecTune {
     private static MachineProfile profile;
     private static TuningPlan plan;
     private static GpuInfo gpu;
+    private static PowerPlanInfo powerPlan;
 
     private SpecTune() {}
 
@@ -39,6 +42,9 @@ public final class SpecTune {
         CpuTopology cpu = config.resolveTopology();
         profile = MachineProfile.capture(cpu);
         plan = TuningPlanner.plan(profile, config, null);
+        // Unlike CPU topology this probe is cheap (a native binary or a single sysfs read, no
+        // PowerShell), so it runs every launch rather than needing the cache resolveTopology() uses.
+        powerPlan = PowerPlanDetector.detect();
         try {
             config.save(configFile());
         } catch (IOException e) {
@@ -69,6 +75,10 @@ public final class SpecTune {
 
     public static synchronized GpuInfo gpu() {
         return gpu;
+    }
+
+    public static synchronized PowerPlanInfo powerPlan() {
+        return powerPlan;
     }
 
     public static Path configDirectory() {

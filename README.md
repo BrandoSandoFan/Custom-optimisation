@@ -28,8 +28,20 @@ mismatched `-Xms`/`-Xmx`, a stop-the-world collector, non-generational ZGC, a pr
 cannot change any of these at runtime, so it reports them and generates the argument line you should
 be using. `/spectune args` prints it in-game; `config/spectune-report.txt` holds the full report.
 
+**Checks the OS power policy.** Reads Windows' active power scheme (`powercfg /getactivescheme`) or
+the Linux cpufreq governor. "Balanced" and "powersave" both throttle CPU clocks under exactly the
+bursty load pattern a game produces — no amount of thread or JVM tuning recovers clock speed the OS
+itself is withholding. Flagged as a warning (Balanced) or critical finding (Power saver).
+
 **Applies a video profile matched to the detected GPU tier and RAM.** Once, by default — it records
 that it has done so and then leaves your settings alone.
+
+**Replaces the Video Settings screen with its own**, the way Sodium's options screen stands in for
+the ones it covers. Opening Video Settings from any menu lands on SpecTune's screen instead —
+every vanilla video row plus SpecTune's own knobs, with a button that resets the lot back to
+SpecTune's recommendation for the machine. No mixin: it detects the screen via Fabric's
+`ScreenEvents.BEFORE_INIT`, then swaps it in on the next tick rather than reentrantly from inside
+that callback, which is what let vanilla's own screen finish opening safely first.
 
 ## What it does not do
 
@@ -73,6 +85,25 @@ JVM and prints the recommended arguments. Useful before you install anything.
 | `/spectune` | Machine summary and findings |
 | `/spectune args` | The JVM argument line for this machine |
 | `/spectune apply` | Re-apply the video profile now |
+| `/spectune settings` | Opens the settings screen directly (same as Options > Video Settings) |
+
+The settings screen is tabbed, the way Sodium's is:
+
+| Tab | Rows |
+|---|---|
+| Video | Render distance, simulation distance, max FPS, VSync, fullscreen, GUI scale, brightness, smooth lighting, view bobbing |
+| Quality | Fancy graphics, field of view, biome blend, mipmaps, entity shadows, entity distance, clouds, particles |
+| SpecTune | Worker thread override, priority tuning, integrated-GPU warning, video apply mode |
+
+Every row vanilla's own Video Settings screen has is covered, so nothing is lost by replacing it.
+
+Video and Quality rows edit the same options the vanilla screen does - changes are visible
+immediately - and are written to `options.txt` on close; the SpecTune tab's rows write to
+`spectune.properties` on close. **Reset to SpecTune Defaults** clears every row on every tab back
+to SpecTune's own recommendation for the detected machine - not vanilla's generic defaults, since
+those ignore your hardware - and re-applies it on the spot. The worker-thread row is the one
+exception: it cannot take effect until the next launch, which is why it says so. Set
+`gui.replaceVideoSettings=false` in `spectune.properties` to get vanilla's own screen back.
 
 ## Configuration
 
@@ -90,6 +121,7 @@ JVM and prints the recommended arguments. Useful before you install anything.
 | `cpu.performanceCores` | `0` | Override the detected P-core count |
 | `cpu.efficiencyCores` | `0` | Override the detected E-core count |
 | `report.write` | `true` | Write `config/spectune-report.txt` |
+| `gui.replaceVideoSettings` | `true` | Replace vanilla's Video Settings screen with SpecTune's own |
 
 A value set on the command line always wins: if you pass `-Dmax.bg.threads=N` yourself, SpecTune
 leaves it alone.
